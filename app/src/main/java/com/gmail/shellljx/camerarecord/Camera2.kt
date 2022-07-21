@@ -5,13 +5,17 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.graphics.SurfaceTexture
 import android.hardware.camera2.*
-import android.os.Build
+import android.os.*
+import android.util.Log
 import android.view.Surface
 import androidx.annotation.RequiresApi
 import androidx.core.app.ActivityCompat
+import java.util.*
 
 @RequiresApi(Build.VERSION_CODES.LOLLIPOP) class Camera2(private val context:Context) {
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
+    private val mBackgroundThread = HandlerThread("Caemra2Thread")
+    private var mBackgroundHandler : Handler?= null
     private val mCameraManager = context.getSystemService(Context.CAMERA_SERVICE) as CameraManager
     private var mCameraId = CameraCharacteristics.LENS_FACING_BACK.toString()
     private var mCameraSession:CameraCaptureSession? = null
@@ -20,6 +24,11 @@ import androidx.core.app.ActivityCompat
     private val mCameraIds = mCameraManager.cameraIdList
     private var mCameraDevice:CameraDevice? = null
     private var mSurfacetexture:SurfaceTexture? = null
+
+    init {
+        mBackgroundThread.start()
+        mBackgroundHandler = Handler(mBackgroundThread.looper)
+    }
 
     fun setSurfaceView(texture:SurfaceTexture){
         mSurfacetexture = texture
@@ -36,33 +45,49 @@ import androidx.core.app.ActivityCompat
             // for ActivityCompat#requestPermissions for more details.
             return
         }
-        mCameraManager.openCamera(mCameraId, mCameStateCallback, null)
+        mCameraManager.openCamera(mCameraId, mCameStateCallback, mBackgroundHandler)
     }
 
     private val mCameStateCallback = object :CameraDevice.StateCallback() {
         override fun onOpened(p0: CameraDevice) {
             mCameraDevice = p0
 
-            mSurfacetexture?.let {
-                mPreviewBuilder = mCameraDevice?.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
-                val surface = Surface(it)
-                it.setDefaultBufferSize(1080,1920)
-                mPreviewBuilder?.addTarget(surface)
-                mCameraDevice?.createCaptureSession(arrayListOf(surface), object : CameraCaptureSession.StateCallback() {
-                    override fun onConfigured(p0: CameraCaptureSession) {
-                        if (mCameraDevice == null){
-                            return
+            try {
+                val builder = mCameraDevice!!.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW)
+                mSurfacetexture?.setDefaultBufferSize(1080,1920)
+                val previewSurface = Surface(mSurfacetexture!!)
+                // 添加输出到屏幕的surface
+                builder.addTarget(previewSurface)
+                mCameraDevice!!.createCaptureSession(
+                    listOf(previewSurface),
+                    object : CameraCaptureSession.StateCallback() {
+                        override fun onConfigured(session: CameraCaptureSession) {
+                            mCameraSession = session
+                            // 设置连续自动对焦和自动曝光
+                            builder.set(
+                                CaptureRequest.CONTROL_AF_MODE,
+                                CaptureRequest.CONTROL_AF_MODE_CONTINUOUS_PICTURE
+                            )
+                            builder.set(
+                                CaptureRequest.CONTROL_AE_MODE,
+                                CaptureRequest.CONTROL_AE_MODE_ON_AUTO_FLASH
+                            )
+                            val captureRequest = builder.build()
+                            try {
+                                // 一直发送预览请求
+                                mCameraSession!!.setRepeatingRequest(captureRequest, null, null)
+                            } catch (e: CameraAccessException) {
+                                e.printStackTrace()
+                            }
                         }
-                        mCameraSession = p0
-                        val previewRequest = mPreviewBuilder?.build()?:return
-                        mCameraSession?.setRepeatingRequest(previewRequest, null, null)
-                    }
 
-                    override fun onConfigureFailed(p0: CameraCaptureSession) {
-                        System.out.println("config error")
-                    }
-
-                }, null)
+                        override fun onConfigureFailed(session: CameraCaptureSession) {
+                            Log.e("lijinxiang", "ConfigureFailed. session: mCaptureSession")
+                        }
+                    }, mBackgroundHandler
+                ) // handle 传入 null 表示使用当前线程的 Looper
+            } catch (e: CameraAccessException) {
+                e.printStackTrace()
             }
 
         }

@@ -29,6 +29,16 @@ class Recorder(context: Context) :SurfaceTexture.OnFrameAvailableListener{
         camera.start()
     }
 
+    fun updateTexImageFromNative(){
+        surfaceTexture?.updateTexImage()
+    }
+
+    private fun getTextureMatrix():FloatArray{
+        val matrix = FloatArray(16)
+        surfaceTexture?.getTransformMatrix(matrix)
+        return matrix
+    }
+
     companion object {
         // Used to load the 'native-lib' library on application startup.
         init {
@@ -37,6 +47,7 @@ class Recorder(context: Context) :SurfaceTexture.OnFrameAvailableListener{
     }
 
     override fun onFrameAvailable(p0: SurfaceTexture?) {
+        System.out.println("frame available")
         onFrameAvailable()
     }
 }

@@ -19,6 +19,8 @@ public:
 
     void OnSurfaceCreat(jobject surface);
 
+    void DrawFrame();
+
 private:
     int createEGLSurfaceInternal();
     void callJavaStartPreview();
@@ -31,6 +33,9 @@ private:
 
     GLuint previewTextureId_;
 
+    void callJavaUpdateTexImage();
+
+    void callJavaTextureMatrix();
 };
 
 

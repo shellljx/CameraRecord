@@ -29,5 +29,5 @@ Java_com_gmail_shellljx_camerarecord_Recorder_surfaceCreateJNI(JNIEnv *env, jobj
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_gmail_shellljx_camerarecord_Recorder_onFrameAvailable(JNIEnv *env, jobject thiz) {
-
+    recorder->DrawFrame();
 }

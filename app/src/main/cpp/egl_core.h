@@ -31,6 +31,8 @@ public:
 
     int MakeCurrent(EGLSurface pVoid);
 
+    bool swapBuffers(EGLSurface pVoid);
+
 private:
     //显示设备
     EGLDisplay display_;

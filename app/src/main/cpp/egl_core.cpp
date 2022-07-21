@@ -80,3 +80,7 @@ EGLSurface EGLCore::createWindowSurface(ANativeWindow *pWindow) {
 int EGLCore::MakeCurrent(EGLSurface pVoid) {
     return eglMakeCurrent(display_, pVoid, pVoid, context_);
 }
+
+bool EGLCore::swapBuffers(EGLSurface pVoid) {
+    return eglSwapBuffers(display_, pVoid);
+}
